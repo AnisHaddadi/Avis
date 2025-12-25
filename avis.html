@@ -361,7 +361,7 @@
         .carousel-dots {
             display: flex;
             justify-content: center;
-            gap: 0.75rem;
+            gap: 0.4rem;
             margin-top: 3rem;
             padding: 1rem;
         }
@@ -566,11 +566,24 @@
             .avis-card {
                 flex: 0 0 100%;
                 padding: 2rem 1.5rem;
+                margin: 0 auto;
+                max-width: 90%;
             }
 
             .carousel-container {
                 gap: 1.5rem;
                 padding: 0.5rem 0;
+                justify-content: flex-start;
+                scroll-snap-type: x mandatory;
+            }
+
+            .carousel-wrapper {
+                overflow: hidden;
+                position: relative;
+            }
+
+            .avis-card {
+                scroll-snap-align: center;
             }
 
             .carousel-wrapper {
@@ -580,6 +593,7 @@
             .carousel-dots {
                 margin-top: 2rem;
                 padding: 0.5rem;
+                gap: 0.4rem;
             }
 
             .rating-section {
@@ -657,7 +671,7 @@
             }
 
             .carousel-dots {
-                gap: 0.5rem;
+                gap: 0.4rem;
             }
 
             .dot {
@@ -698,7 +712,7 @@
     <section class="hero-section" id="accueil">
         <h1 class="hero-title fade-in-up">Avis Clients</h1>
         <p class="hero-subtitle fade-in-up" style="animation-delay: 0.2s;">Découvrez les témoignages authentiques de nos clients satisfaits. Votre expérience compte.</p>
-        <a href="#rating" class="hero-btn fade-in-up" style="animation-delay: 0.4s;">Laisser un avis</a>
+        <a href="#rating" class="hero-btn fade-in-up" style="animation-delay: 0.4s;" onclick="event.preventDefault(); document.getElementById('rating').scrollIntoView({ behavior: 'smooth', block: 'start' }); return false;">Laisser un avis</a>
         </section>
 
     <!-- Section Avis -->
@@ -905,25 +919,42 @@
 
         let cardsPerView = getCardsPerView();
         const totalCards = document.querySelectorAll('.avis-card').length;
-        const totalSlides = Math.ceil(totalCards / cardsPerView);
+        let totalSlides = Math.ceil(totalCards / cardsPerView);
 
-        // Créer les dots
-        for (let i = 0; i < totalSlides; i++) {
+        // Limiter les dots à 4 maximum
+        const maxDots = 4;
+        const dotsToShow = Math.min(totalSlides, maxDots);
+
+        // Créer les dots (maximum 4)
+        for (let i = 0; i < dotsToShow; i++) {
             const dot = document.createElement('div');
             dot.className = 'dot' + (i === 0 ? ' active' : '');
-            dot.addEventListener('click', () => goToSlide(i));
+            // Calculer l'index réel pour naviguer
+            const realIndex = Math.floor((i / dotsToShow) * totalSlides);
+            dot.addEventListener('click', () => goToSlide(realIndex));
             dotsContainer.appendChild(dot);
         }
 
         function updateCarousel() {
             const cardWidth = carousel.querySelector('.avis-card').offsetWidth;
-            const gap = 32;
-            const translateX = -(currentIndex * (cardWidth + gap) * cardsPerView);
+            const gap = window.innerWidth < 768 ? 24 : 32;
+            let translateX;
+            
+            // Sur mobile, centrer une seule carte à la fois
+            if (window.innerWidth < 768) {
+                const containerWidth = carousel.parentElement.offsetWidth;
+                const cardOffset = currentIndex * (cardWidth + gap);
+                translateX = -(cardOffset - (containerWidth - cardWidth) / 2);
+            } else {
+                translateX = -(currentIndex * (cardWidth + gap) * cardsPerView);
+            }
+            
             carousel.style.transform = `translateX(${translateX}px)`;
             
-            // Mettre à jour les dots
+            // Mettre à jour les dots (calculer quel dot doit être actif)
+            const activeDotIndex = Math.floor((currentIndex / totalSlides) * dotsToShow);
             document.querySelectorAll('.dot').forEach((dot, index) => {
-                dot.classList.toggle('active', index === currentIndex);
+                dot.classList.toggle('active', index === activeDotIndex);
             });
         }
 
@@ -1038,9 +1069,9 @@
             clearTimeout(resizeTimer);
             resizeTimer = setTimeout(() => {
                 cardsPerView = getCardsPerView();
-                const newTotalSlides = Math.ceil(totalCards / cardsPerView);
-                if (currentIndex >= newTotalSlides) {
-                    currentIndex = newTotalSlides - 1;
+                totalSlides = Math.ceil(totalCards / cardsPerView);
+                if (currentIndex >= totalSlides) {
+                    currentIndex = totalSlides - 1;
                 }
                 updateCarousel();
             }, 250);
